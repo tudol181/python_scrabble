@@ -1,18 +1,6 @@
 from random import shuffle
 from constants import LETTERS_FREQS, LETTER_SCORE, WORD_MULTIPLIERS, LETTER_MULTIPLIERS
 
-
-def _get_line_offset(file, line_num):
-    """
-    Returns the byte offset for the given line number.
-    """
-    file.seek(0)
-    offset = 0
-    for i in range(line_num):
-        offset += len(file.readline())
-    return offset
-
-
 class Scrabble:
     def __init__(self):
         self._populate_bag()
@@ -149,6 +137,7 @@ class Scrabble:
             if letter in rack:
                 rack.remove(letter)
             else:
+                print("Validation: Not all letters are from the rack")
                 return False
 
         return True
@@ -190,7 +179,8 @@ class Scrabble:
             col = cols[0]
 
             for row in range(start, end):
-                if row not in rows and self._board[row][col] == None:
+                if row not in rows and self._board[row][col] is None:
+                    print("Validation: Tiles are not contiguous")
                     return False
 
         else:
@@ -199,7 +189,8 @@ class Scrabble:
             row = rows[0]
 
             for col in range(start, end):
-                if col not in cols and self._board[row][col] == None:
+                if col not in cols and self._board[row][col] is None:
+                    print("Validation: Tiles are not contiguous")
                     return False
 
         return True
@@ -213,6 +204,8 @@ class Scrabble:
 
         if self._move_count == 0:
             ret = (7, 7) in places
+            if not ret:
+                print("Validation: First move wasn't on star")
             return ret
         else:
             for row, col in places:
@@ -228,7 +221,7 @@ class Scrabble:
                 # Right
                 if col < 14 and self._board[row][col + 1] is not None:
                     return True
-
+            print("Validation: Tiles do not touch existing tiles")
             return False
 
     def _all_vaild_words(self, tiles):
@@ -274,6 +267,7 @@ class Scrabble:
                 for row in range(start, end + 1):
                     word += letters.get((row, col), self._board[row][col])
                 if not self._is_valid_word(word):
+                    print("Validation: Invalid word:", word)
                     return False
 
                 self._score_word((start, col), (end, col), letters)
@@ -302,6 +296,7 @@ class Scrabble:
                 if start_h == end_h:
                     # Issue if only one tile was placed on start
                     if len(tiles) == 1:
+                        print("Validation: Invalid word:", word)
                         return False
                     continue
 
@@ -310,6 +305,7 @@ class Scrabble:
                 for col_h in range(start_h, end_h + 1):
                     word += letters.get((row, col_h), self._board[row][col_h])
                 if not self._is_valid_word(word):
+                    print("Validation: Invalid word:", word)
                     return False
 
                 self._score_word((row, start_h), (row, end_h), letters)
@@ -340,6 +336,7 @@ class Scrabble:
             for col in range(start, end + 1):
                 word += letters.get((row, col), self._board[row][col])
             if not self._is_valid_word(word):
+                print("Validation: Invalid word:", word)
                 return False
 
             self._score_word((row, start), (row, end), letters)
@@ -373,12 +370,13 @@ class Scrabble:
                 for row_v in range(start_v, end_v + 1):
                     word += letters.get((row_v, col), self._board[row_v][col])
                 if not self._is_valid_word(word):
+                    print("Validation: Invalid word:", word)
                     return False
 
                 self._score_word((start_v, col), (end_v, col), letters)
 
         # Validated all words
-
+        print("All words validated")
         return True
 
     def _is_valid_word(self, word):
@@ -460,12 +458,8 @@ class Scrabble:
             self._player_score += 50
         # Reset turn score counter
         self._turn_score = 0
-
+        print("Score:", self._player_score)
 
 game = Scrabble()
-
-# Test valid word
-print(game._is_valid_word("wEARISOMENESSES"))  # Should print True if the word exists
-
-# Test invalid word
-print(game._is_valid_word("WEARS"))  # Should print False if the word doesn't exist
+game._print_board()
+print(game._is_valid_word('hello'))
