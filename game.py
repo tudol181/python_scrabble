@@ -213,11 +213,8 @@ class GameScene(SceneBase):
         # Update player_tiles with the new rack
         new_rack = self.scrabble.get_rack()  # Fetch the updated rack
 
-        # Assign a valid tray position for each tile
-        tray_positions = [(i * 50, 700) for i in range(len(new_rack))]  # Example positions
-
         self.player_tiles = [
-            Tile(letter, self.letter_ss, tray_positions[i]) for i, letter in enumerate(new_rack)
+            Tile(letter, self.letter_ss, PLAYER_TILE_POSITIONS[i]) for i, letter in enumerate(new_rack)
         ]
 
         # Log the updated rack
