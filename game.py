@@ -195,29 +195,39 @@ class GameScene(SceneBase):
 
     def _change_selected_tile(self):
         """
-        Changes the selected tile with a new one from the rack and logs the change.
-        Only changes the currently selected tile.
+        Exchanges all tiles in the player's rack with new ones from the bag
+        and logs the change.
         """
-        if self.selected_tile:
-            old_tile = self.selected_tile
-            print(f"Changing selected tile: {old_tile.letter}")
+        # Get the current rack
+        current_rack = self.scrabble.get_rack()
 
-            # Get a new letter from the rack
-            new_letter = self.scrabble.get_rack()[0]  # Take the first letter from the rack
-            new_tile = Tile(new_letter, self.letter_ss, old_tile.tray_position)  # Create new tile
+        if not current_rack:
+            print("Rack is empty; cannot exchange tiles.")
+            return
 
-            # Replace the selected tile in the player's rack
-            self.player_tiles.remove(old_tile)  # Remove the old tile
-            self.player_tiles.append(new_tile)  # Add the new tile
+        print(f"Current rack: {current_rack}")
 
-            # Log the change (for debugging)
-            print(f"New tile: {new_tile.letter}")
+        # Call the exchange_tiles method from scrabble_rules
+        self.scrabble.exchange_tiles(current_rack)
 
-            # Update the player's tiles after the exchange
-            self._update_player_tiles()
+        # Update player_tiles with the new rack
+        new_rack = self.scrabble.get_rack()  # Fetch the updated rack
 
-            # Deselect the tile after change
-            self.selected_tile = None
+        # Assign a valid tray position for each tile
+        tray_positions = [(i * 50, 700) for i in range(len(new_rack))]  # Example positions
+
+        self.player_tiles = [
+            Tile(letter, self.letter_ss, tray_positions[i]) for i, letter in enumerate(new_rack)
+        ]
+
+        # Log the updated rack
+        print(f"New rack: {new_rack}")
+
+        # Update the display of player's tiles
+        self._update_player_tiles()
+
+        # Deselect any selected tile
+        self.selected_tile = None
 
     def _update_player_tiles(self):
         """
