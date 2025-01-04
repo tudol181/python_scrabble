@@ -1,17 +1,21 @@
 from random import shuffle
 from constants import LETTERS_FREQS, LETTER_SCORE, WORD_MULTIPLIERS, LETTER_MULTIPLIERS
 
+
 class Scrabble:
-    def __init__(self):
+    def __init__(self, max_players=2):
         self._populate_bag()
         self.shuffle_bag()
         self._board = [
             [None] * 15 for _ in range(15)
         ]
         self._move_count = 0
-        self._player_rack = []
-        self._draw_tiles(7)
-        self._player_score = 0
+        self.current_player = 1
+        self.max_players = max_players
+        self.player_racks = [[] for _ in range(self.max_players)]
+        self._player_score = [0] * self.max_players
+        for i in range(self.max_players):
+            self._draw_tiles(7, i + 1)
 
     def _print_board(self):
         for i in range(15):
@@ -24,7 +28,8 @@ class Scrabble:
                     print(self._board[i][j], end='')
             print('')
 
-        print('Rack:', ' '.join(self._player_rack))
+        for i, rack in enumerate(self.player_racks, 1):
+            print(f"Player {i}'s rack:", ' '.join(rack))
 
     def _populate_bag(self):
         self._bag = []
@@ -35,69 +40,44 @@ class Scrabble:
     def shuffle_bag(self):
         shuffle(self._bag)
 
-    def _draw_tiles(self, amount):
-        for _ in range(amount):
-            if len(self._bag) > 0:
-                self._player_rack.append(self._bag.pop())
+    def _draw_tiles(self, amount, player):
+        # Draw tiles only for the current player
+        if len(self._bag) > 0:
+            for _ in range(amount):
+                if len(self._bag) > 0:
+                    self.player_racks[player - 1].append(self._bag.pop())
 
-    def num_remaining_tiles(self):
-        return len(self._bag)
+    def get_rack(self, player=None):
+        if player:
+            return self.player_racks[player - 1]
+        return self.player_racks[self.current_player - 1]
 
-    def get_rack(self):
-        return self._player_rack[:]
+    def get_racks(self):
+        return self.player_racks[:]
 
-    # def exchange_tiles(self, old):
-    #     """
-    #     returns the old tiles to the bag and draws an equal number to replace them
-    #     """
-    #     # only can return letters from the player's rack
-    #     if not self._all_letters_from_rack(old):
-    #         return False  # Exchange failed
-    #
-    #     # ensure there are enough tiles in the bag for the exchange
-    #     if len(old) > len(self._bag):
-    #         return False  # Exchange failed
-    #
-    #     # remove old tiles from the rack
-    #     for letter in old:
-    #         self._player_rack.remove(letter)
-    #         # add them to bag
-    #         self._bag.append(letter)
-    #
-    #     # shuffle the bag
-    #     self.shuffle_bag()
-    #
-    #     # draw new tiles
-    #     self._draw_tiles(len(old))
-    #
-    #     return True  # exchange successful
-
-    def exchange_tiles(self, old):
+    def exchange_tiles(self, old, player=None):
         """
         Returns the old tiles to the bag and draws an equal number to replace
         them.
         """
         # Only can return letters from the player's rack
-        if self._all_letters_from_rack(old):
-            # Make sure there is enough letters to exchange
-            if len(old) > len(self._bag):
-                return
+        if len(old) > len(self._bag):
+            return
+        # Add the new tiles to the rack
+        self._draw_tiles(len(old), player)
 
-            # Add the new tiles to the rack
-            self._draw_tiles(len(old))
+        # Remove the old from the rack and add them to the bag
+        for letter in old:
+            self.player_racks[player - 1].remove(letter)
+            self._bag.append(letter)
 
-            # Remove the old from the rack and add them to the bad
-            for letter in old:
-                self._player_rack.remove(letter)
-                self._bag.append(letter)
-
-            self.shuffle_bag()
+        self.shuffle_bag()
 
     def submit_turn(self, tiles):
         if self._is_valid_move(tiles):
             self._score_turn(tiles)
             self._place_move(tiles)
-            self._update_player_rack(tiles)
+            self._updateplayer_racks(tiles)
             return True
         else:
             return False
@@ -130,12 +110,14 @@ class Scrabble:
 
     def _all_letters_from_rack(self, letters):
         """
-        Determines if all letters are present in the player's rack
+        Determines if all letters are present in the current player's rack.
         """
-        rack = self._player_rack[:]
+        # Get the current player's rack
+        rack = self.player_racks[self.current_player - 1]  # Access the correct player's rack
+
         for letter in letters:
             if letter in rack:
-                rack.remove(letter)
+                rack.remove(letter)  # Remove the letter from the rack after using it
             else:
                 print("Validation: Not all letters are from the rack")
                 return False
@@ -330,7 +312,6 @@ class Scrabble:
                     # Found first open place, quit
                     break
 
-
             # Check the word that was made horizontally
             word = ''
             for col in range(start, end + 1):
@@ -421,14 +402,22 @@ class Scrabble:
         for row, col, letter in tiles:
             self._board[row][col] = letter
 
-    def _update_player_rack(self, tiles):
+    def _update_player_racks(self, tiles):
         """
-        Removed the letters from the player rack and draw new ones.
+        Removes the letters from the player rack and draws new ones.
         """
-        for _, _, letter in tiles:
-            self._player_rack.remove(letter)
+        # Get the current player's rack
+        current_player_rack = self.player_racks[self.current_player - 1]  # Get the correct player's rack
 
-        self._draw_tiles(len(tiles))
+        # Remove the tiles from the player's rack
+        for _, _, letter in tiles:
+            if letter in current_player_rack:
+                current_player_rack.remove(letter)
+            else:
+                print(f"Tile {letter} not found in current player's rack.")
+
+        # Draw new tiles for the current player
+        self._draw_tiles(len(tiles))  # Draw the same number of tiles that were played
 
     def _score_word(self, start, end, letters):
         """
@@ -441,18 +430,18 @@ class Scrabble:
                 if (row, col) in letters:
                     # Check for score modifiers
                     multiplier *= WORD_MULTIPLIERS.get((row, col), 1)
-                    score += LETTER_SCORE[letters[(row, col)]]*LETTER_MULTIPLIERS.get((row, col), 1)
+                    score += LETTER_SCORE[letters[(row, col)]] * LETTER_MULTIPLIERS.get((row, col), 1)
                 else:
                     # Tile must be on board, add it's value
                     score += LETTER_SCORE[self._board[row][col]]
 
-        self._turn_score += score*multiplier
+        self._turn_score += score * multiplier
 
     def _score_turn(self, tiles):
         """
         Applies the score of the last validated move to the player score.
         """
-        self._player_score = self._turn_score
+        self._player_score += self._turn_score
         # Check for Bingo
         if len(tiles) == 7:
             self._player_score += 50
@@ -460,6 +449,49 @@ class Scrabble:
         self._turn_score = 0
         print("Score:", self._player_score)
 
-game = Scrabble()
-game._print_board()
-print(game._is_valid_word('hello'))
+
+# Assuming the Scrabble class is already imported and set up
+
+def test_scrabble_game():
+    game = Scrabble(max_players=2)  # Two players for the test
+
+    # Initial board print
+    game._print_board()
+
+    # Player 1's rack before the turn
+    print(f"Player 1's initial rack: {game.get_rack(1)}")
+
+    # Simulate Player 1's turn: forming the word "CAT" at positions (7, 7), (7, 8), (7, 9)
+    tiles_player_1 = [(7, 7, 'C'), (7, 8, 'A'), (7, 9, 'T')]  # A valid word in the center of the board
+    print("\nPlayer 1 plays the word 'CAT' at (7, 7), (7, 8), (7, 9)")
+
+    if game.submit_turn(tiles_player_1):
+        print("Player 1's move validated successfully.")
+    else:
+        print("Player 1's move failed validation.")
+
+    # Print board after Player 1's move
+    game._print_board()
+
+    # Switch to Player 2 and check their rack
+    game.current_player = 2
+    print(f"\nPlayer 2's rack: {game.get_rack(2)}")
+
+    # Simulate Player 2's turn: forming the word "DOG" at positions (8, 7), (8, 8), (8, 9)
+    tiles_player_2 = [(8, 7, 'D'), (8, 8, 'O'), (8, 9, 'G')]  # Another valid word
+    print("\nPlayer 2 plays the word 'DOG' at (8, 7), (8, 8), (8, 9)")
+
+    if game.submit_turn(tiles_player_2):
+        print("Player 2's move validated successfully.")
+    else:
+        print("Player 2's move failed validation.")
+
+    # Print board after Player 2's move
+    game._print_board()
+
+    # Check final scores
+    print(f"\nPlayer 1's score: {game._player_score[0]}")
+    print(f"Player 2's score: {game._player_score[1]}")
+
+# Run the test
+# test_scrabble_game()
