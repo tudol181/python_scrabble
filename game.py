@@ -1,3 +1,5 @@
+import sys
+
 import pygame
 
 from constants import PLAYER_TILE_POSITIONS, LETTERS
@@ -173,6 +175,7 @@ class GameScene(SceneBase):
         self.current_player = 1
         self.scrabble._print_board()
         self._update_player_tiles()
+        self.changes = [0] * selected_players
 
     def process_input(self, events, pressed_keys):
         for event in events:
@@ -182,7 +185,11 @@ class GameScene(SceneBase):
                 elif event.key == pygame.K_p:
                     self.scrabble._print_board()
                 elif event.key == pygame.K_c:  # c to change the tiles
-                    self._change_selected_tile()
+                    if(self.changes[self.scrabble.current_player - 1] >= 2):
+                        print("You cannot change more than 3 times")
+                        break
+                    else:
+                        self._change_selected_tile()
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
@@ -218,6 +225,10 @@ class GameScene(SceneBase):
             print("Rack is empty; cannot exchange tiles.")
             return
 
+        self.changes[self.scrabble.current_player - 1] += 1
+        print("playerul", self.scrabble.current_player)
+        print("schimbari", self.changes)
+        print("\n\n")
         print(f"Current rack: {current_rack}")
         self.scrabble.exchange_tiles(current_rack)
         self._update_player_tiles()
@@ -262,38 +273,6 @@ class GameScene(SceneBase):
             score_text_y += 40
 
         #lost button
-
-        pygame.draw.rect(screen, (255, 0, 0), self.lost_button_rect)
-        lost_text = font.render("Pass", True, (255, 255, 255))
-        screen.blit(lost_text, (self.lost_button_rect.centerx - lost_text.get_width() // 2,
-                                self.lost_button_rect.centery - lost_text.get_height() // 2))
-
-    def _player_lost(self):
-        """Handles the logic when a player presses the Lost button."""
-        print(f"Player {self.scrabble.current_player} has left the game.")
-
-        print("actibve players", self.active_players)
-        self.active_players.remove(self.scrabble.current_player)
-        print("actibve players", self.active_players)
-
-        # Check if the game should end
-        if len(self.active_players) < 2:
-            print("Only two players remain. Ending the game!")
-            pygame.quit()
-            sys.exit()
-
-        # Move to the next active player
-        self._advance_to_next_player()
-
-    def _advance_to_next_player(self):
-        """Advances to the next active player."""
-        if self.scrabble.current_player not in self.active_players:
-            self.scrabble.current_player = self.active_players[0]
-        current_index = self.active_players.index(self.scrabble.current_player)
-        next_index = (current_index + 1) % len(self.active_players)
-        self.scrabble.current_player = self.active_players[next_index]
-        print(f"Next player is now Player {self.scrabble.current_player}.")
-        self._update_player_tiles()
 
     def _hits_tile(self, pos, ignore=None):
         """Checks if the position hits an existing tile."""
