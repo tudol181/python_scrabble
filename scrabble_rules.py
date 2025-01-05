@@ -18,6 +18,9 @@ class Scrabble:
             self._draw_tiles(7, i + 1)
         self._turn_score = 0
 
+    def get_scores(self):
+        return self._player_score
+
     def _print_board(self):
         for i in range(15):
             for j in range(15):

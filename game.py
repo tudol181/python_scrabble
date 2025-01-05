@@ -246,8 +246,54 @@ class GameScene(SceneBase):
             screen.blit(self.selected_tile.image, self.selected_tile.rect)
         pygame.font.init()
         font = pygame.font.SysFont("Arial", 30)
+
+        #turn info
         turn_text = font.render(f"Player {self.scrabble.current_player}'s Turn", True, (255, 255, 255))
-        screen.blit(turn_text, (300, 700))
+        screen.blit(turn_text, (250, 700))
+
+        #score info
+        scores = self.scrabble.get_scores()
+        score_text_y = 50
+        score_text_x = 620
+
+        for player_num, score in enumerate(scores, start=1):
+            score_text = font.render(f"Player {player_num}: {score} pts", True, (255, 255, 255))
+            screen.blit(score_text, (score_text_x, score_text_y))
+            score_text_y += 40
+
+        #lost button
+
+        pygame.draw.rect(screen, (255, 0, 0), self.lost_button_rect)
+        lost_text = font.render("Pass", True, (255, 255, 255))
+        screen.blit(lost_text, (self.lost_button_rect.centerx - lost_text.get_width() // 2,
+                                self.lost_button_rect.centery - lost_text.get_height() // 2))
+
+    def _player_lost(self):
+        """Handles the logic when a player presses the Lost button."""
+        print(f"Player {self.scrabble.current_player} has left the game.")
+
+        print("actibve players", self.active_players)
+        self.active_players.remove(self.scrabble.current_player)
+        print("actibve players", self.active_players)
+
+        # Check if the game should end
+        if len(self.active_players) < 2:
+            print("Only two players remain. Ending the game!")
+            pygame.quit()
+            sys.exit()
+
+        # Move to the next active player
+        self._advance_to_next_player()
+
+    def _advance_to_next_player(self):
+        """Advances to the next active player."""
+        if self.scrabble.current_player not in self.active_players:
+            self.scrabble.current_player = self.active_players[0]
+        current_index = self.active_players.index(self.scrabble.current_player)
+        next_index = (current_index + 1) % len(self.active_players)
+        self.scrabble.current_player = self.active_players[next_index]
+        print(f"Next player is now Player {self.scrabble.current_player}.")
+        self._update_player_tiles()
 
     def _hits_tile(self, pos, ignore=None):
         """Checks if the position hits an existing tile."""
