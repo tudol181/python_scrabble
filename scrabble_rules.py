@@ -16,6 +16,7 @@ class Scrabble:
         self._player_score = [0] * self.max_players
         for i in range(self.max_players):
             self._draw_tiles(7, i + 1)
+        self._turn_score = 0
 
     def _print_board(self):
         for i in range(15):
@@ -42,10 +43,10 @@ class Scrabble:
 
     def _draw_tiles(self, amount, player):
         # Draw tiles only for the current player
-        if len(self._bag) > 0:
-            for _ in range(amount):
-                if len(self._bag) > 0:
-                    self.player_racks[player - 1].append(self._bag.pop())
+        self.current_player = player
+        for _ in range(amount):
+            if len(self._bag) > 0:
+                self.player_racks[player - 1].append(self._bag.pop())
 
     def get_rack(self, player=None):
         if player:
@@ -60,7 +61,8 @@ class Scrabble:
         Returns the old tiles to the bag and draws an equal number to replace
         them.
         """
-        # Only can return letters from the player's rack
+        self.current_player = player
+        # if self._all_letters_from_rack(old):
         if len(old) > len(self._bag):
             return
         # Add the new tiles to the rack
@@ -77,10 +79,36 @@ class Scrabble:
         if self._is_valid_move(tiles):
             self._score_turn(tiles)
             self._place_move(tiles)
-            self._updateplayer_racks(tiles)
+            self._update_player_racks(tiles, self.current_player)
+            self.advance_turn()
             return True
         else:
             return False
+
+    def advance_turn(self):
+        """
+        Advances the turn to the next player in sequence.
+        """
+        self.current_player = (self.current_player % self.max_players) + 1
+        print(f"It's now Player {self.current_player}'s turn.")
+
+    def _update_player_racks(self, tiles, player):
+        """
+        Removes the letters from the player's rack and draws new ones.
+        """
+        # Get the current player's rack
+        current_player_rack = self.player_racks[player - 1]  # Get the correct player's rack
+
+        # Remove the tiles from the player's rack
+        for _, _, letter in tiles:
+            if letter in current_player_rack:
+                current_player_rack.remove(letter)
+            else:
+                print(f"Tile {letter} not found in current player's rack.")
+
+        # Draw new tiles for the current player
+        self._draw_tiles(len(tiles), player)  # Draw the same number of tiles that were played
+
 
     def _is_valid_move(self, tiles):
         """
@@ -112,12 +140,12 @@ class Scrabble:
         """
         Determines if all letters are present in the current player's rack.
         """
-        # Get the current player's rack
-        rack = self.player_racks[self.current_player - 1]  # Access the correct player's rack
+        # Make a copy of the rack to validate without altering it
+        rack = self.player_racks[self.current_player - 1][:]  # Copy the current player's rack
 
         for letter in letters:
             if letter in rack:
-                rack.remove(letter)  # Remove the letter from the rack after using it
+                rack.remove(letter)  # Temporarily remove the letter from the copied rack
             else:
                 print("Validation: Not all letters are from the rack")
                 return False
@@ -134,6 +162,7 @@ class Scrabble:
 
         return ret
 
+
     def _all_unique_places(self, rows, cols):
         """
         Cannot have duplicate places
@@ -144,6 +173,7 @@ class Scrabble:
             print("Validation: Tiles are not uniquely placed")
             print(places)
         return ret
+
 
     def _is_contiguous(self, rows, cols):
         """
@@ -177,6 +207,7 @@ class Scrabble:
 
         return True
 
+
     def _touches_others(self, rows, cols):
         """
         Word being played must touch existing tiles, or first move must start
@@ -205,6 +236,7 @@ class Scrabble:
                     return True
             print("Validation: Tiles do not touch existing tiles")
             return False
+
 
     def _all_vaild_words(self, tiles):
         """
@@ -360,6 +392,7 @@ class Scrabble:
         print("All words validated")
         return True
 
+
     def _is_valid_word(self, word):
         """
         Uses binary search to determine if the word is valid, directly in the file.
@@ -384,6 +417,7 @@ class Scrabble:
 
         return False
 
+
     def _get_line_offset(self, file, line_num):
         """
         Returns the byte offset for the given line number.
@@ -394,6 +428,7 @@ class Scrabble:
             offset += len(file.readline()) + 1
         return offset
 
+
     def _place_move(self, tiles):
         """
         Given a valid set of tiles, adds them to the board.
@@ -401,23 +436,6 @@ class Scrabble:
         self._move_count += 1
         for row, col, letter in tiles:
             self._board[row][col] = letter
-
-    def _update_player_racks(self, tiles):
-        """
-        Removes the letters from the player rack and draws new ones.
-        """
-        # Get the current player's rack
-        current_player_rack = self.player_racks[self.current_player - 1]  # Get the correct player's rack
-
-        # Remove the tiles from the player's rack
-        for _, _, letter in tiles:
-            if letter in current_player_rack:
-                current_player_rack.remove(letter)
-            else:
-                print(f"Tile {letter} not found in current player's rack.")
-
-        # Draw new tiles for the current player
-        self._draw_tiles(len(tiles))  # Draw the same number of tiles that were played
 
     def _score_word(self, start, end, letters):
         """
@@ -437,11 +455,12 @@ class Scrabble:
 
         self._turn_score += score * multiplier
 
+
     def _score_turn(self, tiles):
         """
         Applies the score of the last validated move to the player score.
         """
-        self._player_score += self._turn_score
+        self._player_score[self.current_player - 1] += self._turn_score
         # Check for Bingo
         if len(tiles) == 7:
             self._player_score += 50
@@ -450,48 +469,56 @@ class Scrabble:
         print("Score:", self._player_score)
 
 
-# Assuming the Scrabble class is already imported and set up
-
-def test_scrabble_game():
-    game = Scrabble(max_players=2)  # Two players for the test
-
-    # Initial board print
-    game._print_board()
-
-    # Player 1's rack before the turn
-    print(f"Player 1's initial rack: {game.get_rack(1)}")
-
-    # Simulate Player 1's turn: forming the word "CAT" at positions (7, 7), (7, 8), (7, 9)
-    tiles_player_1 = [(7, 7, 'C'), (7, 8, 'A'), (7, 9, 'T')]  # A valid word in the center of the board
-    print("\nPlayer 1 plays the word 'CAT' at (7, 7), (7, 8), (7, 9)")
-
-    if game.submit_turn(tiles_player_1):
-        print("Player 1's move validated successfully.")
-    else:
-        print("Player 1's move failed validation.")
-
-    # Print board after Player 1's move
-    game._print_board()
-
-    # Switch to Player 2 and check their rack
-    game.current_player = 2
-    print(f"\nPlayer 2's rack: {game.get_rack(2)}")
-
-    # Simulate Player 2's turn: forming the word "DOG" at positions (8, 7), (8, 8), (8, 9)
-    tiles_player_2 = [(8, 7, 'D'), (8, 8, 'O'), (8, 9, 'G')]  # Another valid word
-    print("\nPlayer 2 plays the word 'DOG' at (8, 7), (8, 8), (8, 9)")
-
-    if game.submit_turn(tiles_player_2):
-        print("Player 2's move validated successfully.")
-    else:
-        print("Player 2's move failed validation.")
-
-    # Print board after Player 2's move
-    game._print_board()
-
-    # Check final scores
-    print(f"\nPlayer 1's score: {game._player_score[0]}")
-    print(f"Player 2's score: {game._player_score[1]}")
-
-# Run the test
+# def test_scrabble_game():
+#     game = Scrabble(max_players=2)  # Two players for the test
+#
+#     # Initial board print
+#     game._print_board()
+#
+#     # Player 1's rack before the turn
+#     print(f"Player 1's initial rack: {game.get_rack(1)}")
+#
+#     # Simulate Player 1's turn: forming the word "CAT" at positions (7, 7), (7, 8), (7, 9)
+#     tiles_player_1 = [(7, 7, 'C'), (7, 8, 'A'), (7, 9, 'T')]  # A valid word in the center of the board
+#     print("\nPlayer 1 plays the word 'CAT' at (7, 7), (7, 8), (7, 9)")
+#
+#     if game.submit_turn(tiles_player_1):
+#         print("Player 1's move validated successfully.")
+#     else:
+#         print("Player 1's move failed validation.")
+#
+#     # Print board after Player 1's move
+#     game._print_board()
+#
+#     # Switch to Player 2 and check their rack
+#     game.current_player = 2
+#     print(f"\nPlayer 2's rack: {game.get_rack(2)}")
+#
+#     # Simulate Player 2's turn: forming the word "DOG" at positions (8, 7), (8, 8), (8, 9)
+#     tiles_player_2 = [(8, 7, 'D'), (8, 8, 'O'), (8, 9, 'G')]  # Another valid word
+#     print("\nPlayer 2 plays the word 'DOG' at (8, 7), (8, 8), (8, 9)")
+#
+#     if game.submit_turn(tiles_player_2):
+#         print("Player 2's move validated successfully.")
+#     else:
+#         print("Player 2's move failed validation.")
+#
+#     # Print board after Player 2's move
+#     game._print_board()
+#
+#     # Check final scores
+#     print(f"\nPlayer 1's score: {game._player_score[0]}")
+#     print(f"Player 2's score: {game._player_score[1]}")
+#
+#
+# # Run the test
 # test_scrabble_game()
+
+game = Scrabble(2)
+game._print_board()
+print("Oldie")
+print(game.get_rack(1))
+game.exchange_tiles(game.get_rack(1), 1)
+print("Newie")
+print(game.get_rack(1))
+game._print_board()

@@ -125,27 +125,44 @@ class Tile(pygame.sprite.Sprite):
 class TitleScene(SceneBase):
     def __init__(self):
         SceneBase.__init__(self)
+        self.selected_players = 2
+
+        self.buttons = {
+            2: pygame.Rect(300, 250, 200, 50),
+            3: pygame.Rect(300, 320, 200, 50),
+            4: pygame.Rect(300, 390, 200, 50),
+        }
+        pygame.font.init()
+        self.font = pygame.font.SysFont("Arial", 30)
 
     def process_input(self, events, pressed_keys):
-        self.needs_update = False
         for event in events:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                # Move to the next scene when the user pressed Enter
-                self.SwitchToScene(GameScene())
-                self.needs_update = True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for player_count, rect in self.buttons.items():
+                    if rect.collidepoint(event.pos):
+                        self.selected_players = player_count
+                        self.SwitchToScene(GameScene(self.selected_players))
 
     def update(self):
         pass
 
     def render(self, screen):
         # For the sake of brevity, the title scene is a blank red screen
-        screen.fill((255, 0, 0))
+        screen.fill((255, 255, 255))
+        for player_count, rect in self.buttons.items():
+            pygame.draw.rect(screen, (0, 255, 0), rect)
+            text = self.font.render(f"{player_count} Players", True, (0, 0, 0))
+            screen.blit(text, (rect.centerx - text.get_width() // 2, rect.centery - text.get_height() // 2))
+
+            # Render title text (optional)
+        title_text = self.font.render("Select Number of Players", True, (0, 0, 0))
+        screen.blit(title_text, (300, 150))
 
 
 class GameScene(SceneBase):
-    def __init__(self):
+    def __init__(self, selected_players):
         SceneBase.__init__(self)
-        self.scrabble = Scrabble()
+        self.scrabble = Scrabble(selected_players)
         self.board = Board('imgs/board.jpg', [0, 0])
         self.letter_ss = LetterParser('imgs/letters.jpg')
         self.player_tiles = []
@@ -153,9 +170,9 @@ class GameScene(SceneBase):
         self.selected_tile = None
         self.offset_x = 0
         self.offset_y = 0
-
-        for i, letter in enumerate(self.scrabble.get_rack()):
-            self.player_tiles.append(Tile(letter, self.letter_ss, PLAYER_TILE_POSITIONS[i]))
+        self.current_player = 1
+        self.scrabble._print_board()
+        self._update_player_tiles()
 
     def process_input(self, events, pressed_keys):
         for event in events:
@@ -164,7 +181,7 @@ class GameScene(SceneBase):
                     self._submit_turn()
                 elif event.key == pygame.K_p:
                     self.scrabble._print_board()
-                elif event.key == pygame.K_c:  # Add key to change the selected tile (e.g., 'C')
+                elif event.key == pygame.K_c:  # c to change the tiles
                     self._change_selected_tile()
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -194,11 +211,7 @@ class GameScene(SceneBase):
                     self.selected_tile.rect.top = mouse_y + self.offset_y
 
     def _change_selected_tile(self):
-        """
-        Exchanges all tiles in the player's rack with new ones from the bag
-        and logs the change.
-        """
-        # Get the current rack
+        """Handles exchanging tiles for the current player."""
         current_rack = self.scrabble.get_rack()
 
         if not current_rack:
@@ -206,40 +219,20 @@ class GameScene(SceneBase):
             return
 
         print(f"Current rack: {current_rack}")
-
-        # Call the exchange_tiles method from scrabble_rules
         self.scrabble.exchange_tiles(current_rack)
-
-        # Update player_tiles with the new rack
-        new_rack = self.scrabble.get_rack()  # Fetch the updated rack
-
-        self.player_tiles = [
-            Tile(letter, self.letter_ss, PLAYER_TILE_POSITIONS[i]) for i, letter in enumerate(new_rack)
-        ]
-
-        # Log the updated rack
-        print(f"New rack: {new_rack}")
-
-        # Update the display of player's tiles
         self._update_player_tiles()
 
-        # Deselect any selected tile
-        self.selected_tile = None
-
     def _update_player_tiles(self):
-        """
-        Updates the player's rack tiles after a change.
-        """
-        for i, letter in enumerate(self.scrabble.get_rack()):
-            if i < len(self.player_tiles):
-                self.player_tiles[i].letter = letter
-                self.player_tiles[i].image = self.letter_ss.image_at(LETTERS[letter])
+        """Updates the tiles displayed for the current player's rack."""
+        self.player_tiles = [
+            Tile(letter, self.letter_ss, PLAYER_TILE_POSITIONS[i])
+            for i, letter in enumerate(self.scrabble.get_rack())
+        ]
 
     def update(self):
         pass
 
     def render(self, screen):
-        # The game scene is just a blank blue screen
         screen.fill((0, 0, 255))
         screen.blit(self.board.image, self.board.rect)
 
@@ -249,12 +242,15 @@ class GameScene(SceneBase):
         for tile in self.game_tiles:
             screen.blit(tile.image, tile.rect)
 
-        # Make selected tile on top
         if self.selected_tile:
             screen.blit(self.selected_tile.image, self.selected_tile.rect)
+        pygame.font.init()
+        font = pygame.font.SysFont("Arial", 30)
+        turn_text = font.render(f"Player {self.scrabble.current_player}'s Turn", True, (255, 255, 255))
+        screen.blit(turn_text, (300, 700))
 
     def _hits_tile(self, pos, ignore=None):
-        """Returns true if the position hits a tile."""
+        """Checks if the position hits an existing tile."""
         for tile in self.player_tiles + self.game_tiles:
             if tile == ignore:
                 continue
@@ -263,35 +259,25 @@ class GameScene(SceneBase):
         return False
 
     def _submit_turn(self):
-        """
-        Submits the turn to the scrabble backend. Moves the player tiles to
-        game tiles and updates the player tiles.
-        """
-        # Get a list of tiles that will be sumbit
-        tiles = []
-        for tile in self.player_tiles:
-            if tile.on_board:
-                tiles.append(tile.tile())
+        """Handles submitting the current turn."""
+        tiles = [tile.tile() for tile in self.player_tiles if tile.on_board]
 
-        # Not a turn if there's no tiles on board
-        if len(tiles) == 0:
+        if not tiles:
+            print("No tiles played. Turn skipped.")
             return
 
         if self.scrabble.submit_turn(tiles):
-            # Valid turn, move all played tiles to game.
             for tile in self.player_tiles:
                 if tile.on_board:
                     self.game_tiles.append(tile)
 
-            # Update the player tiles
-            self.player_tiles = []
-            for i, letter in enumerate(self.scrabble.get_rack()):
-                self.player_tiles.append(Tile(letter, self.letter_ss, PLAYER_TILE_POSITIONS[i]))
-
+            self._update_player_tiles()
+            print("Turn successfully submitted. Advancing to the next player.")
         else:
-            # Invalid turn, return all tiles to rack
+            print("Invalid turn. Returning tiles to the rack.")
             for tile in self.player_tiles:
                 tile.rerack()
+
 
 
 run_game(800, 800, 60, TitleScene())
