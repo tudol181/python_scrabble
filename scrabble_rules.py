@@ -56,21 +56,20 @@ class Scrabble:
     def get_racks(self):
         return self.player_racks[:]
 
-    def exchange_tiles(self, old, player=None):
+    def exchange_tiles(self, old):
         """
         Returns the old tiles to the bag and draws an equal number to replace
         them.
         """
-        self.current_player = player
         # if self._all_letters_from_rack(old):
         if len(old) > len(self._bag):
             return
         # Add the new tiles to the rack
-        self._draw_tiles(len(old), player)
+        self._draw_tiles(len(old), self.current_player)
 
         # Remove the old from the rack and add them to the bag
         for letter in old:
-            self.player_racks[player - 1].remove(letter)
+            self.player_racks[self.current_player - 1].remove(letter)
             self._bag.append(letter)
 
         self.shuffle_bag()
@@ -514,11 +513,11 @@ class Scrabble:
 # # Run the test
 # test_scrabble_game()
 
-game = Scrabble(2)
-game._print_board()
-print("Oldie")
-print(game.get_rack(1))
-game.exchange_tiles(game.get_rack(1), 1)
-print("Newie")
-print(game.get_rack(1))
-game._print_board()
+# game = Scrabble(2)
+# game._print_board()
+# print("Oldie")
+# print(game.get_rack(1))
+# game.exchange_tiles(game.get_rack(1), 1)
+# print("Newie")
+# print(game.get_rack(1))
+# game._print_board()
