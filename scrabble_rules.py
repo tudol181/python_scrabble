@@ -17,9 +17,28 @@ class Scrabble:
         for i in range(self.max_players):
             self._draw_tiles(7, i + 1)
         self._turn_score = 0
+        self.eliminated = [0] * self.max_players
+
+    def get_active_players(self):
+        return [i + 1 for i in range(self.max_players) if not self.eliminated[i]]
+
+    def remove_player(self, player):
+        print(f"Removing Player {player}")
+        self.eliminated[player - 1] = 1
+        # self.player_racks.pop(player - 1)
+        # self._player_score.pop(player - 1)
+        print(self.eliminated)
+        if len(self.get_active_players()) != 1:
+            self.advance_turn()
 
     def get_scores(self):
-        return self._player_score
+        scores = []
+        for i in range(self.max_players):
+            if self.eliminated[i] == 1:
+                scores.append('Lost')
+            else:
+                scores.append(self._player_score[i])
+        return scores
 
     def _print_board(self):
         for i in range(15):
@@ -33,7 +52,10 @@ class Scrabble:
             print('')
 
         for i, rack in enumerate(self.player_racks, 1):
-            print(f"Player {i}'s rack:", ' '.join(rack))
+            if self.eliminated[i - 1]:
+                print(f"Player {i} has been eliminated.")
+            else:
+                print(f"Player {i}'s rack:", ' '.join(rack))
 
     def _populate_bag(self):
         self._bag = []
@@ -57,7 +79,13 @@ class Scrabble:
         return self.player_racks[self.current_player - 1]
 
     def get_racks(self):
-        return self.player_racks[:]
+        racks = []
+        for i in range(self.max_players):
+            if self.eliminated[i]:
+                racks.append('Lost')
+            else:
+                racks.append(self.player_racks[i])
+        return racks
 
     def exchange_tiles(self, old):
         """
@@ -78,6 +106,8 @@ class Scrabble:
         self.shuffle_bag()
 
     def submit_turn(self, tiles):
+        if self.eliminated[self.current_player - 1]:
+            self.advance_turn()
         if self._is_valid_move(tiles):
             self._score_turn(tiles)
             self._place_move(tiles)
@@ -470,57 +500,7 @@ class Scrabble:
         self._turn_score = 0
         print("Score:", self._player_score)
 
-
-# def test_scrabble_game():
-#     game = Scrabble(max_players=2)  # Two players for the test
-#
-#     # Initial board print
-#     game._print_board()
-#
-#     # Player 1's rack before the turn
-#     print(f"Player 1's initial rack: {game.get_rack(1)}")
-#
-#     # Simulate Player 1's turn: forming the word "CAT" at positions (7, 7), (7, 8), (7, 9)
-#     tiles_player_1 = [(7, 7, 'C'), (7, 8, 'A'), (7, 9, 'T')]  # A valid word in the center of the board
-#     print("\nPlayer 1 plays the word 'CAT' at (7, 7), (7, 8), (7, 9)")
-#
-#     if game.submit_turn(tiles_player_1):
-#         print("Player 1's move validated successfully.")
-#     else:
-#         print("Player 1's move failed validation.")
-#
-#     # Print board after Player 1's move
-#     game._print_board()
-#
-#     # Switch to Player 2 and check their rack
-#     game.current_player = 2
-#     print(f"\nPlayer 2's rack: {game.get_rack(2)}")
-#
-#     # Simulate Player 2's turn: forming the word "DOG" at positions (8, 7), (8, 8), (8, 9)
-#     tiles_player_2 = [(8, 7, 'D'), (8, 8, 'O'), (8, 9, 'G')]  # Another valid word
-#     print("\nPlayer 2 plays the word 'DOG' at (8, 7), (8, 8), (8, 9)")
-#
-#     if game.submit_turn(tiles_player_2):
-#         print("Player 2's move validated successfully.")
-#     else:
-#         print("Player 2's move failed validation.")
-#
-#     # Print board after Player 2's move
-#     game._print_board()
-#
-#     # Check final scores
-#     print(f"\nPlayer 1's score: {game._player_score[0]}")
-#     print(f"Player 2's score: {game._player_score[1]}")
-#
-#
-# # Run the test
-# test_scrabble_game()
-
-# game = Scrabble(2)
-# game._print_board()
-# print("Oldie")
-# print(game.get_rack(1))
-# game.exchange_tiles(game.get_rack(1), 1)
-# print("Newie")
-# print(game.get_rack(1))
-# game._print_board()
+game = Scrabble(3)
+game._print_board()
+game.remove_player(1)
+game._print_board()

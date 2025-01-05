@@ -176,6 +176,7 @@ class GameScene(SceneBase):
         self.scrabble._print_board()
         self._update_player_tiles()
         self.changes = [0] * selected_players
+        self.game_over = False
 
     def process_input(self, events, pressed_keys):
         for event in events:
@@ -185,7 +186,7 @@ class GameScene(SceneBase):
                 elif event.key == pygame.K_p:
                     self.scrabble._print_board()
                 elif event.key == pygame.K_c:  # c to change the tiles
-                    if(self.changes[self.scrabble.current_player - 1] >= 2):
+                    if self.changes[self.scrabble.current_player - 1] >= 2:
                         print("You cannot change more than 3 times")
                         break
                     else:
@@ -193,6 +194,10 @@ class GameScene(SceneBase):
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    lost_button_rect = pygame.Rect(620, 300, 135, 50)
+                    mouse_x, mouse_y = event.pos
+                    if lost_button_rect.collidepoint(mouse_x, mouse_y):
+                        self.remove_player()
                     for tile in self.player_tiles:
                         if tile.rect.collidepoint(event.pos):
                             self.selected_tile = tile
@@ -216,6 +221,18 @@ class GameScene(SceneBase):
                     mouse_x, mouse_y = event.pos
                     self.selected_tile.rect.left = mouse_x + self.offset_x
                     self.selected_tile.rect.top = mouse_y + self.offset_y
+
+
+    def remove_player(self):
+        print(f"Current Player: {self.scrabble.current_player}")
+        self.scrabble.remove_player(self.scrabble.current_player)
+
+        print(f"Players: {self.scrabble.get_active_players()}")
+        if len(self.scrabble.get_active_players()) == 1:
+            print("Game Over")
+            self.game_over = True  # Set game over state
+            #display here the button
+            # sys.exit()
 
     def _change_selected_tile(self):
         """Handles exchanging tiles for the current player."""
@@ -246,33 +263,44 @@ class GameScene(SceneBase):
     def render(self, screen):
         screen.fill((0, 0, 255))
         screen.blit(self.board.image, self.board.rect)
-
-        for tile in self.player_tiles:
-            screen.blit(tile.image, tile.rect)
-
-        for tile in self.game_tiles:
-            screen.blit(tile.image, tile.rect)
-
-        if self.selected_tile:
-            screen.blit(self.selected_tile.image, self.selected_tile.rect)
         pygame.font.init()
         font = pygame.font.SysFont("Arial", 30)
 
-        #turn info
-        turn_text = font.render(f"Player {self.scrabble.current_player}'s Turn", True, (255, 255, 255))
-        screen.blit(turn_text, (250, 700))
+        # end game
+        if self.game_over:
+            end_game_text = font.render(f"Player {self.scrabble.get_active_players()[0]} won", True, (255, 255, 255))
+            screen.blit(end_game_text, (500, 700))
+            # sys.exit()
+        else:
+            for tile in self.player_tiles:
+                screen.blit(tile.image, tile.rect)
 
-        #score info
-        scores = self.scrabble.get_scores()
-        score_text_y = 50
-        score_text_x = 620
+            for tile in self.game_tiles:
+                screen.blit(tile.image, tile.rect)
 
-        for player_num, score in enumerate(scores, start=1):
-            score_text = font.render(f"Player {player_num}: {score} pts", True, (255, 255, 255))
-            screen.blit(score_text, (score_text_x, score_text_y))
-            score_text_y += 40
+            if self.selected_tile:
+                screen.blit(self.selected_tile.image, self.selected_tile.rect)
 
-        #lost button
+            #turn info
+            turn_text = font.render(f"Player {self.scrabble.current_player}'s Turn", True, (255, 255, 255))
+            screen.blit(turn_text, (250, 700))
+
+            #score info
+            scores = self.scrabble.get_scores()
+            score_text_y = 50
+            score_text_x = 620
+
+            for player_num, score in enumerate(scores, start=1):
+                score_text = font.render(f"Player {player_num}: {score} pts", True, (255, 255, 255))
+                screen.blit(score_text, (score_text_x, score_text_y))
+                score_text_y += 40
+
+            #lost button
+            lost_button_rect = pygame.Rect(620, 300, 135, 50)
+            pygame.draw.rect(screen, (255, 0, 0), lost_button_rect)
+
+            lost_button_text = font.render("Lost Button", True, (255, 255, 255))
+            screen.blit(lost_button_text, (lost_button_rect.x, lost_button_rect.y))
 
     def _hits_tile(self, pos, ignore=None):
         """Checks if the position hits an existing tile."""
