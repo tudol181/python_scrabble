@@ -3,8 +3,9 @@ from constants import LETTERS_FREQS, LETTER_SCORE, WORD_MULTIPLIERS, LETTER_MULT
 
 
 class Scrabble:
-    def __init__(self, max_players=2):
+    def __init__(self, max_players=2, dict_file='words.txt'):
         """Initialize the game"""
+        self.dict_file = dict_file
         self._populate_bag()
         self.shuffle_bag()
         self._board = [
@@ -19,6 +20,14 @@ class Scrabble:
             self._draw_tiles(7, i + 1)
         self._turn_score = 0
         self.eliminated = [0] * self.max_players
+        self.num_words = self._count_lines()
+
+    def _count_lines(self):
+        """
+        Returns the number of lines in the dictionary file.
+        """
+        with open(self.dict_file, 'r') as file:
+            return sum(1 for _ in file)
 
     def get_active_players(self):
         """Get the list of active players"""
@@ -442,8 +451,8 @@ class Scrabble:
         word = word.upper()  # Ensure the word is in uppercase
 
         # Open the file for reading
-        with open('words.txt', 'r') as file:
-            low, high = 0, 279496  # Number of words in the file
+        with open(self.dict_file, 'r') as file:
+            low, high = 0, self.num_words - 1  # Number of words in the file
             # Binary search
             while low <= high:
                 mid = (low + high) // 2

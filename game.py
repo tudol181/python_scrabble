@@ -1,8 +1,13 @@
 import pygame
-
+import sys
 from constants import PLAYER_TILE_POSITIONS, LETTERS
 from image import LetterParser
 from scrabble_rules import Scrabble
+
+if len(sys.argv) < 2:
+    print("Usage: game.py <dict_file>")
+    sys.exit(1)
+dict_file = sys.argv[1]
 
 
 class SceneBase:
@@ -173,13 +178,12 @@ class TitleScene(SceneBase):
         title_text = self.font.render("Select Number of Players", True, (0, 0, 0))
         screen.blit(title_text, (300, 150))
 
-
 class GameScene(SceneBase):
     """The main game scene."""
     def __init__(self, selected_players):
         """Initializes the game scene."""
         SceneBase.__init__(self)
-        self.scrabble = Scrabble(selected_players)
+        self.scrabble = Scrabble(selected_players, dict_file)
         self.board = Board('imgs/board.jpg', [0, 0])
         self.letter_ss = LetterParser('imgs/letters.jpg')
         self.player_tiles = []
