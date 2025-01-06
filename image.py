@@ -2,7 +2,9 @@ import pygame
 
 
 class LetterParser(object):
+    """Class to parse a letter image and return the letter as a string"""
     def __init__(self, filename):
+        """Initialize the letter parser"""
         try:
             self.sheet = pygame.image.load(filename).convert()
         except pygame.error as message:

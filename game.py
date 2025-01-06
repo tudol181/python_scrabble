@@ -1,5 +1,3 @@
-import sys
-
 import pygame
 
 from constants import PLAYER_TILE_POSITIONS, LETTERS
@@ -9,23 +7,30 @@ from scrabble_rules import Scrabble
 
 class SceneBase:
     def __init__(self):
+        """Initializes the scene."""
         self.next = self
     def process_input(self, events, pressed_keys):
+        """Processes input events for the scene."""
         print("uh-oh, you didn't override this in the child class")
 
     def update(self):
+        """Updates the scene."""
         print("uh-oh, you didn't override this in the child class")
 
     def render(self, screen):
+        """Renders the scene."""
         print("uh-oh, you didn't override this in the child class")
 
     def SwitchToScene(self, next_scene):
+        """Switches to the given scene."""
         self.next = next_scene
 
     def Terminate(self):
+        """Terminates the scene."""
         self.SwitchToScene(None)
 
 def run_game(width, height, fps, starting_scene):
+    """Runs the game with the given width, height, fps, and starting scene."""
     pygame.init()
     screen = pygame.display.set_mode((width, height))
     clock = pygame.time.Clock()
@@ -83,14 +88,18 @@ def pixel_to_tile(x, y):
     return tile_x, tile_y
 
 class Board(pygame.sprite.Sprite):
+    """The game board."""
     def __init__(self, image_file, location):
+        """Initializes the board with the given image and location."""
         pygame.sprite.Sprite.__init__(self)  # call Sprite initializer
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
 
 class Tile(pygame.sprite.Sprite):
+    """A tile that can be placed on the board."""
     def __init__(self, letter, spritesheet, location):
+        """Initializes a tile with the given letter and spritesheet."""
         pygame.sprite.Sprite.__init__(self)  # call Sprite initializer
         self.image = spritesheet.image_at(LETTERS[letter])
         self.letter = letter
@@ -126,6 +135,7 @@ class Tile(pygame.sprite.Sprite):
 
 class TitleScene(SceneBase):
     def __init__(self):
+        """Initializes the title scene."""
         SceneBase.__init__(self)
         self.selected_players = 2
 
@@ -138,6 +148,7 @@ class TitleScene(SceneBase):
         self.font = pygame.font.SysFont("Arial", 30)
 
     def process_input(self, events, pressed_keys):
+        """Handles input events for the title scene."""
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for player_count, rect in self.buttons.items():
@@ -146,9 +157,11 @@ class TitleScene(SceneBase):
                         self.SwitchToScene(GameScene(self.selected_players))
 
     def update(self):
+        """Updates the title scene."""
         pass
 
     def render(self, screen):
+        """Renders the title scene."""
         # For the sake of brevity, the title scene is a blank red screen
         screen.fill((255, 255, 255))
         for player_count, rect in self.buttons.items():
@@ -162,7 +175,9 @@ class TitleScene(SceneBase):
 
 
 class GameScene(SceneBase):
+    """The main game scene."""
     def __init__(self, selected_players):
+        """Initializes the game scene."""
         SceneBase.__init__(self)
         self.scrabble = Scrabble(selected_players)
         self.board = Board('imgs/board.jpg', [0, 0])
@@ -179,6 +194,7 @@ class GameScene(SceneBase):
         self.game_over = False
 
     def process_input(self, events, pressed_keys):
+        """Handles input events for the game scene."""
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
@@ -224,6 +240,7 @@ class GameScene(SceneBase):
 
 
     def remove_player(self):
+        """Removes the current player from the game"""
         print(f"Current Player: {self.scrabble.current_player}")
         self.scrabble.remove_player(self.scrabble.current_player)
 
@@ -258,9 +275,11 @@ class GameScene(SceneBase):
         ]
 
     def update(self):
+        """Updates the game scene."""
         pass
 
     def render(self, screen):
+        """Renders the game scene."""
         screen.fill((0, 0, 255))
         screen.blit(self.board.image, self.board.rect)
         pygame.font.init()

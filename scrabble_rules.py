@@ -4,6 +4,7 @@ from constants import LETTERS_FREQS, LETTER_SCORE, WORD_MULTIPLIERS, LETTER_MULT
 
 class Scrabble:
     def __init__(self, max_players=2):
+        """Initialize the game"""
         self._populate_bag()
         self.shuffle_bag()
         self._board = [
@@ -20,9 +21,11 @@ class Scrabble:
         self.eliminated = [0] * self.max_players
 
     def get_active_players(self):
+        """Get the list of active players"""
         return [i + 1 for i in range(self.max_players) if not self.eliminated[i]]
 
     def remove_player(self, player):
+        """Remove a player from the game"""
         print(f"Removing Player {player}")
         self.eliminated[player - 1] = 1
         # self.player_racks.pop(player - 1)
@@ -32,6 +35,7 @@ class Scrabble:
             self.advance_turn()
 
     def get_scores(self):
+        """Get the scores of all players"""
         scores = []
         for i in range(self.max_players):
             if self.eliminated[i] == 1:
@@ -41,6 +45,7 @@ class Scrabble:
         return scores
 
     def _print_board(self):
+        """Print the board and player racks"""
         for i in range(15):
             for j in range(15):
                 if self._board[i][j] is None:
@@ -58,15 +63,18 @@ class Scrabble:
                 print(f"Player {i}'s rack:", ' '.join(rack))
 
     def _populate_bag(self):
+        """Populate the bag with the correct number of tiles"""
         self._bag = []
         for letter in LETTERS_FREQS:
             for _ in range(LETTERS_FREQS[letter]):
                 self._bag.append(letter)
 
     def shuffle_bag(self):
+        """Shuffle the bag of tiles"""
         shuffle(self._bag)
 
     def _draw_tiles(self, amount, player):
+        """Draw tiles from the bag and add them to the player's rack"""
         # Draw tiles only for the current player
         self.current_player = player
         for _ in range(amount):
@@ -74,11 +82,13 @@ class Scrabble:
                 self.player_racks[player - 1].append(self._bag.pop())
 
     def get_rack(self, player=None):
+        """Get the rack of the current player"""
         if player:
             return self.player_racks[player - 1]
         return self.player_racks[self.current_player - 1]
 
     def get_racks(self):
+        """Get the racks of all players"""
         racks = []
         for i in range(self.max_players):
             if self.eliminated[i]:
@@ -106,6 +116,7 @@ class Scrabble:
         self.shuffle_bag()
 
     def submit_turn(self, tiles):
+        """Submit the tiles to be placed on the board"""
         if self.eliminated[self.current_player - 1]:
             self.advance_turn()
         if self._is_valid_move(tiles):
@@ -164,8 +175,8 @@ class Scrabble:
                 self._is_colinear(rows, cols) and
                 self._all_unique_places(rows, cols) and
                 self._is_contiguous(rows, cols) and
-                self._touches_others(rows, cols) and
-                self._all_vaild_words(tiles)
+                self.touches_others(rows, cols) and
+                self.all_valid_words(tiles)
         )
 
     def _all_letters_from_rack(self, letters):
@@ -240,7 +251,7 @@ class Scrabble:
         return True
 
 
-    def _touches_others(self, rows, cols):
+    def touches_others(self, rows, cols):
         """
         Word being played must touch existing tiles, or first move must start
         in the middle of the board.
@@ -270,7 +281,7 @@ class Scrabble:
             return False
 
 
-    def _all_vaild_words(self, tiles):
+    def all_valid_words(self, tiles):
         """
         Determines if all the words formed are valid.
         Accumulates the score for valid words
@@ -355,7 +366,6 @@ class Scrabble:
                     return False
 
                 self._score_word((row, start_h), (row, end_h), letters)
-
         else:  # is horizontal
             start = min(cols)
             end = max(cols)
@@ -499,8 +509,3 @@ class Scrabble:
         # Reset turn score counter
         self._turn_score = 0
         print("Score:", self._player_score)
-
-game = Scrabble(3)
-game._print_board()
-game.remove_player(1)
-game._print_board()
