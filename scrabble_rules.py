@@ -21,6 +21,30 @@ class Scrabble:
         self._turn_score = 0
         self.eliminated = [0] * self.max_players
         self.num_words = self._count_lines()
+        self.sort_words()
+
+    def sort_words(self):
+        """
+        Reads the dictionary file, sorts the words alphabetically,
+        and writes them back to the file.
+        """
+        try:
+            # Read words from the file
+            with open(self.dict_file, 'r') as file:
+                words = file.readlines()
+
+            # Remove whitespace and sort the words
+            words = [word.strip() for word in words]
+            words.sort()
+
+            # Write the sorted words back to the file
+            with open(self.dict_file, 'w') as file:
+                file.write('\n'.join(words))
+
+            print(f"Words in {self.dict_file} have been sorted successfully.")
+
+        except Exception as e:
+            print(f"An error occurred while sorting words: {e}")
 
     def _count_lines(self):
         """
